@@ -56,8 +56,8 @@ void print_reversed(FILE *infile)
 /* Prints words from the file stream. Words are defined as whitespace
  * delimited sequences of characters.
  *
- * When reverse_seek is TRUE, the file is traversed from start
- * to end (first word first). When reverse_seek is FALSE, the
+ * When reverse_seek is FALSE, the file is traversed from start
+ * to end (first word first). When reverse_seek is TRUE, the
  * file is traversed from end to start (last word first).
  */
 void print_words(FILE *infile, int reverse_seek)
@@ -70,7 +70,7 @@ void print_words(FILE *infile, int reverse_seek)
   size_t file_chars = ftell(infile);
 
   if (!reverse_seek) {
-    // Return to the start of the file
+    // Return cursor to the start of the file
     fseek(infile, 0, SEEK_SET);
   }
 
@@ -98,9 +98,6 @@ void print_words(FILE *infile, int reverse_seek)
     }
   }
 
-  //printf("\nwords char_count: %d\n", char_count);
-  //word[char_count] = fgetc(infile);
-  //char_count++;
   if (char_count > 0)
     print_one_word(word, char_count - 1, 0);
 
@@ -124,10 +121,8 @@ int main(int argc, char **argv)
     case ('c'):
       print_reversed(infile); break;
     case ('w'):
-      //reverse_words(infile); break;
       print_words(infile, TRUE); break;
     case ('z'):
-      //reverse_word_chars(infile); break;
       print_words(infile, FALSE); break;
     default:
       fprintf(stderr, "Invalid argument!\n");

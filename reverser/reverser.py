@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """Reverser.
 
 Usage:
@@ -17,7 +19,9 @@ import os
 
 class Reverser(object):
     """Reverses text from an input file using 1 of 3 methods.
-        1) characters
+        1) Characters via reverse_words() (e.g., Hello world --> dlrow olleH)
+        2) Words via reverse_words() (e.g., Hello world --> world Hello)
+        3) Word Characters via reverse_word_characters() (e.g., Hello world --> olleH dlrow)
     """
 
     @classmethod
