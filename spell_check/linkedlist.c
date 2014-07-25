@@ -23,6 +23,7 @@ WordNode * create_node(char *input)
 
     if (!node->word) {
         fprintf(stderr, "ERROR: Out of memory (WordNode->word).\n");
+        free(node);
         return NULL;
     }
 
@@ -153,8 +154,8 @@ int delete_WLL(WordLinkedList **list)
 /* Searches for the input in list.
  *
  * Returns:
- *      NO_MATCH (-1) if no match is found, or
- *      FOUND_MATCH (1) when a match is found
+ *      NOT_FOUND (-1) if no FOUND is found, or
+ *      FOUND (1) when a FOUND is found
  */
 int find_WLL(WordLinkedList *list, char *input)
 {
@@ -168,7 +169,7 @@ int find_WLL(WordLinkedList *list, char *input)
     }
 
     if (strcmp(current->word, input) == 0)
-        return FOUND_MATCH;
+        return FOUND;
     else
-        return NO_MATCH;
+        return NOT_FOUND;
 }

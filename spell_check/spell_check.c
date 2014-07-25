@@ -42,7 +42,7 @@ bool is_exit_prompt(char *input)
 
 void prompt_input(char *input)
 {
-    printf("Please enter a word (\".\" to exit): ");
+    printf("\nPlease enter a word (\".\" to exit): ");
     scanf("%s", input);
 }
 
@@ -60,11 +60,15 @@ int main(int argc, char const *argv[])
         // find better way to expose, or not dupes in tree
     */
 
-    
+
     // File is initialized, or the program exit()s
     char filename[100];
     parse_args(argv, filename);
     FILE *infile = fopen(filename, "r");
+    if (!infile) {
+        fprintf(stderr, "ERROR: Cannot open file %s!\n", filename);
+        exit(EXIT_FAILURE);
+    }
 
     printf("Welcome to Spell Checker!\n");
     printf("This program will check the spelling for words entered at the prompt.\n\n");
@@ -74,16 +78,16 @@ int main(int argc, char const *argv[])
 
     char input[200];
     prompt_input(input);
-    int result;
+    printf("\n");
     while (!is_exit_prompt(input))
     {
-        result = spell_check(dict, input);
-        if (result == found) {
+        if (spell_check(dict, input) == FOUND) {
             printf("\"%s\" is spelled correctly.\n", input);
         } else {
             printf("\"%s\" is misspelled!\n", input);
         }
         prompt_input(input);
+        printf("\n");
     }
 
     print_summary_report(dict);

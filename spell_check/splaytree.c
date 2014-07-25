@@ -26,6 +26,7 @@ WordBTNode * create_node_WBT(char *str)
 
     if (!new_node->word) {
         fprintf(stderr, "ERROR: Out of memory (WordBTNode->word).\n");
+        free(new_node);
         return NULL;
     }
 
@@ -60,7 +61,7 @@ int delete_node_WST(WordBTNode **trash_node)
 }
 
 /* Delete the tree using iterative post-order traversal.*/
-void delete_all_nodes_WST_iter(WordBTNode *current_node)
+void delete_all_nodes_WST(WordBTNode *current_node)
 {
     WordBTNode *parent_node;
 
@@ -85,26 +86,12 @@ void delete_all_nodes_WST_iter(WordBTNode *current_node)
     delete_node_WST(&current_node);
 }
 
-/* Delete the tree using post-order traversal.
-
-int delete_all_nodes_WST(WordBTNode *trash_node)
-{
-    if (trash_node->left) {
-        delete_all_nodes_WST(trash_node->left);
-    }
-    if (trash_node->right) {
-        delete_all_nodes_WST(trash_node->right);
-    }
-    delete_node_WST(&trash_node);
-}
- */
-
 int delete_WST(WordSplayTree **tree)
 {
     // First traverse the tree, and free all the nodes
     if ((*tree)->root) {
         //delete_all_nodes_WST((*tree)->root);
-        delete_all_nodes_WST_iter((*tree)->root);
+        delete_all_nodes_WST((*tree)->root);
     } else {
         fprintf(stderr, "ERROR: Tree is already empty.\n");
         return STATUS_ERROR;
@@ -173,20 +160,8 @@ void link_nodes(WordBTNode *child, WordBTNode *new_parent, hand_side new_side)
     }
 }
 
-/*
-void insert_node(WordBTNode *node, WordBTNode *new_node, hand_side side)
-{
-    if (side == right) {
-        node->right = new_node;
-        new_node->parent = node;
-    } else {
-        node->left = new_node;
-        new_node->parent = node;
-    }
-}
-*/
 
-WordBTNode * find_edge_iter(WordBTNode *current_node, char *input)
+WordBTNode * find_edge(WordBTNode *current_node, char *input)
 {
     WordBTNode *new_node = NULL;
 
@@ -230,40 +205,6 @@ WordBTNode * find_edge_iter(WordBTNode *current_node, char *input)
     return new_node;
 }
 
-/*
-int find_edge(WordBTNode *current_node, WordBTNode *new_node)
-{
-    int result = strcmp(new_node->word, current_node->word);
-
-    if (result < 0) {
-        if (current_node->left) {
-            // current_node's left is occupied. Try to find the edge further left.
-            find_edge(current_node->left, new_node);
-        } else {
-            // Current_node's left is open. Insert new node in the tree there
-            insert_node(current_node, new_node, left);
-        }
-    } else if (result > 0) {
-        if (current_node->right) {
-            // current_node's right is occupied. Try to find the edge further right.
-            find_edge(current_node->right, new_node);
-        } else {
-            // Node's right is open. Insert new node in the tree there
-            insert_node(current_node, new_node, right);
-        }
-    } else {*/
-        /* The new string is neither < nor > of the current_node.
-         * This means the node is equal to the current_node. Duplicate
-         * nodes are not permitted.*/
-        /*fprintf(stderr, "ERROR: Duplicate word entry in SplayTree is not permitted!\n");
-        //delete_node_WST(&new_node);
-        return STATUS_ERROR;
-    }
-
-    return STATUS_OK;
-}
-*/
-
 /* Each insert requires finding the edge of the tree.
  * Once the new node is created at this edge, it is splayed
  * repeatedly until the new node is the tree root.
@@ -274,7 +215,7 @@ int insert_WST(WordSplayTree *tree, char *input) {
 
     if (tree->root) {
         //find_edge(tree->root, new_node);
-        new_node = find_edge_iter(tree->root, input);
+        new_node = find_edge(tree->root, input);
     } else {
         //tree->root = new_node;
         new_node = create_node_WBT(input);
@@ -283,7 +224,7 @@ int insert_WST(WordSplayTree *tree, char *input) {
 
     if (new_node) {
         //splay(tree, new_node);
-        splay_iter(tree, new_node);
+        splay(tree, new_node);
     }
 }
 
@@ -404,7 +345,7 @@ void zigzag(WordSplayTree *tree, WordBTNode *splay_node, WordBTNode *p, WordBTNo
     }
 }
 
-int splay_iter(WordSplayTree *tree, WordBTNode *splay_node)
+int splay(WordSplayTree *tree, WordBTNode *splay_node)
 {
     if (!tree || !tree->root) {
         fprintf(stderr, "ERROR: Cannot splay an empty tree.\n");
@@ -436,62 +377,30 @@ int splay_iter(WordSplayTree *tree, WordBTNode *splay_node)
     return STATUS_OK;
 }
 
-/*
-void splay(WordSplayTree *tree, WordBTNode *splay_node)
-{
-    if (tree->root == splay_node) {
-        // No splaying needed when already root
-        return;
-    }
-
-    if (splay_node->parent == tree->root) {
-        zig(tree, splay_node);
-
-    } else {
-        WordBTNode *p = splay_node->parent;
-        WordBTNode *gp = splay_node->parent->parent;
-
-        // Determine whether ZigZig or ZigZag splay move is needed
-        if (gp->left == p && p->left == splay_node) {
-            zigzig(tree, splay_node, p, gp);
-        } else if (gp->right == p && p->right == splay_node) {
-            zigzig(tree, splay_node, p, gp);
-        } else {
-            zigzag(tree, splay_node, p, gp);
-        }
-    }
-
-    // Continue splaying until splay_node is the tree's root
-    if (splay_node != tree->root) {
-        splay(tree, splay_node);
-    }
-}
-*/
-
 /* Searches the SplayTree for an input string. If the string is
  * located in the tree, the corresponding node is splayed until
  * it is the tree's root.
  *
- * When no match is found, no splaying occurs.
+ * When no FOUND is found, no splaying occurs.
  *
  * Returns:
- *      -1 when no match is found
- *      1 when a match is found
+ *      -1 when no FOUND is found
+ *      1 when a FOUND is found
  */
 int find_WST(WordSplayTree *tree, char *input)
 {
     if (tree && tree->root)
         //return find_node(tree, tree->root, input);
-        return find_node_iter(tree, tree->root, input);
+        return find_node(tree, tree->root, input);
     else {
         fprintf(stderr, "ERROR: Tree is empty\n");
         return -1;
     }
 }
 
-int find_node_iter(WordSplayTree *tree, WordBTNode *current_node, char *input)
+int find_node(WordSplayTree *tree, WordBTNode *current_node, char *input)
 {
-    int result = NO_MATCH;
+    int result = NOT_FOUND;
 
     while (result != 0 && current_node)
     {
@@ -505,37 +414,9 @@ int find_node_iter(WordSplayTree *tree, WordBTNode *current_node, char *input)
     }
 
     if (current_node) {
-        splay_iter(tree, current_node);
-        return FOUND_MATCH;
+        splay(tree, current_node);
+        return FOUND;
     } else {
-        return NO_MATCH;
+        return NOT_FOUND;
     }
 }
-
-/*int find_node(WordSplayTree *tree, WordBTNode *current_node, char *input)
-{
-    int result;
-    if (current_node && current_node->word) {
-        result = strcmp(input, current_node->word);
-    } else {
-        fprintf(stderr, "ERROR: SplayTree node has NULL word.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if (result < 0) {
-        if (current_node->left)
-            // Continue searching further left
-            find_node(tree, current_node->left, input);
-
-    } else if (result > 0) {
-        if (current_node->right)
-            // Continue searching further right
-            find_node(tree, current_node->right, input);
-
-    } else {
-        //splay(tree, current_node);
-        splay_iter(tree, current_node);
-        return FOUND_MATCH;
-    }
-}
-*/

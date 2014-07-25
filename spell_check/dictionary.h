@@ -1,8 +1,6 @@
 #ifndef DICTIONARY_H
 #define DICTIONARY_H
 
-enum results {found = 1, not_found = -1};
-
 typedef struct _PCounter
 {
     clock_t load_clocks;
@@ -18,8 +16,8 @@ typedef struct _Dictionary
     WordSplayTree *tree;
     PCounter *tree_counter;
 
-    //WordHashTable *table;
-    //PCounter *table_counter;
+    WordHashTable *table;
+    PCounter *table_counter;
 } Dictionary;
 
 Dictionary * load_dictionary(FILE *f);

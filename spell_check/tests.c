@@ -3,9 +3,7 @@
 #include <stdbool.h>
 #include "linkedlist.h"
 #include "splaytree.h"
-
-#define STATUS_OK          0
-#define STATUS_ERROR    1
+#include "hashtable.h"
 
 int test_linkedlist()
 {
@@ -93,11 +91,47 @@ int test_splaytree()
     return STATUS_OK;
 }
 
+int test_hashtable()
+{
+    WordHashTable *table;
+    table = create_WHT();
+
+    if (table)
+        printf("Successfully created table (%u/%u buckets occupied)!\n", 
+                table->occupied, table->available);
+
+    insert_WHT(table, "bread");
+    insert_WHT(table, "bread");
+    insert_WHT(table, "ham");
+    insert_WHT(table, "cheese");
+    insert_WHT(table, "feta");
+    insert_WHT(table, "apple");
+    insert_WHT(table, "grape");
+    insert_WHT(table, "yarn");
+    insert_WHT(table, "unicorn");
+
+    printf("Table has %u/%u buckets occupied!\n", 
+            table->occupied, table->available);
+
+    char *search = "ham";
+    if (find_WHT(table, search) == 0)
+        printf("Found %s in the table!\n", search); 
+    else
+        printf("Did not find %s in the table!\n", search);
+
+    delete_WHT(&table);
+    if (table)
+        printf("FAILED TO DELETE TABLE!\n");
+    
+    return STATUS_OK;
+}
+
 
 int run_tests()
 {
-    test_linkedlist();
-    test_splaytree();
+    //test_linkedlist();
+    //test_splaytree();
+    test_hashtable();
     return STATUS_OK;
 }
 

@@ -1,10 +1,19 @@
 #ifndef SPLAYTREE_H
 #define SPLAYTREE_H
 
-#define STATUS_OK        0
-#define STATUS_ERROR     1
-#define NO_MATCH         -1
-#define FOUND_MATCH      1
+#ifndef STATUS_CODES_T
+#define STATUS_CODES_T
+
+enum {STATUS_OK = 1, STATUS_ERROR = 0};
+
+#endif /* STATUS_CODES */
+
+#ifndef SEARCH_CODES_T
+#define SEARCH_CODES_T
+
+enum {FOUND = 1, NOT_FOUND = 0};
+
+#endif /* SEARCH_CODES_T */
 
 typedef struct _WordBTNode
 {
@@ -19,9 +28,8 @@ typedef struct _WordTree {
 } WordSplayTree;
 
 WordSplayTree * create_WST();
-int insert_WST(WordSplayTree *t, char *i);
-int delete_WST(WordSplayTree **t);
+int insert_WST(WordSplayTree *t, char *s);
 int find_WST(WordSplayTree *t, char *s);
-void splay(WordSplayTree *t, WordBTNode *n);
+int delete_WST(WordSplayTree **t);
 
 #endif /* SPLAYTREE_H */
