@@ -400,10 +400,13 @@ int find_WST(WordSplayTree *tree, char *input)
 
 int find_node(WordSplayTree *tree, WordBTNode *current_node, char *input)
 {
-    int result = NOT_FOUND;
+    int result = -1;
+
+    //printf("\tBeginning search for \"%s\" at root.\n", input);
 
     while (result != 0 && current_node)
     {
+        //printf("\t\tChecking  \"%s\" against \"%s\".\n", input, current_node->word);
         result = strcmp(input, current_node->word);
 
         if (result < 0) {

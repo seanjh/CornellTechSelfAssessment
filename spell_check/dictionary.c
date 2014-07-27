@@ -46,6 +46,19 @@ void trim_newline(char *str)
     }
 }
 
+char * search_result(int result)
+{
+    char *str;
+    if (result == FOUND) {
+        str = "FOUND";
+    } else if (result == NOT_FOUND) {
+        str = "NOT FOUND";
+    } else {
+        str = "ERROR";
+    }
+    return str;
+}
+
 void normalize_input(char *str)
 {
     convert_to_lower(str);
@@ -54,7 +67,7 @@ void normalize_input(char *str)
 
 PCounter * create_pcounter()
 {
-    PCounter * counter = (PCounter *) malloc(sizeof(PCounter));
+    PCounter * counter = malloc(sizeof(PCounter));
     if (!counter)
     {
         fprintf(stderr, "%s\n", "ERROR: Out of memory (PCounter).");
@@ -71,7 +84,7 @@ PCounter * create_pcounter()
 Dictionary * create_dictionary()
 {
     //printf("Creating dictionary\n");
-    Dictionary *dict = (Dictionary *) malloc(sizeof(Dictionary));
+    Dictionary *dict = malloc(sizeof(Dictionary));
     if (!dict) {
         fprintf(stderr, "%s\n", "ERROR: Out of memory (Dictionary).");
         exit(EXIT_FAILURE);
@@ -118,11 +131,11 @@ Dictionary * load_dictionary(FILE *infile)
         start = clock();
         insert_WST(dict->tree, line);
         dict->tree_counter->load_clocks += (clock() - start);
-        
+
         start = clock();
         insert_WHT(dict->table, line);
-        dict->table_counter += clock() - start;
-        
+        dict->table_counter->load_clocks += clock() - start;
+
         //hold_up(0.5, false);
     }
     printf("DONE\n");
@@ -135,55 +148,58 @@ Dictionary * load_dictionary(FILE *infile)
     elapsed = ((double) dict->tree_counter->load_clocks) / CLOCKS_PER_SEC * 1000.0;
     printf("Tree loaded in %0.3f ms\n", elapsed);
 
+    elapsed = ((double) dict->table_counter->load_clocks) / CLOCKS_PER_SEC * 1000.0;
+    printf("Table loaded in %0.3f ms\n", elapsed);
+
     return dict;
 }
 
 int spell_check(Dictionary *dict, char *input)
 {
     normalize_input(input);
-    
-    int last_result;
-    int result;
+
+    int results[3] = {NOT_FOUND, NOT_FOUND, NOT_FOUND};
     //int result_table;
-    
+
     clock_t before;
     clock_t after;
     double elapsed;
 
     before = clock();
-    result = find_WLL(dict->list, input);
+    results[0] = find_WLL(dict->list, input);
     after = clock();
     dict->list_counter->find_clocks += after - before;
     elapsed = ((double) (after - before)) / CLOCKS_PER_SEC * 1000.0;
-    printf("\tList search comleted in %0.3f ms (%ld clocks)\n", elapsed, (after - before));
+    printf("\tList search comleted in %0.3f ms (%ld clocks). %s\n",
+        elapsed, (after - before), search_result(results[0]));
 
-    last_result = result;
     before = clock();
-    result = find_WST(dict->tree, input);
+    results[1] = find_WST(dict->tree, input);
     after = clock();
     dict->tree_counter->find_clocks += after - before;
     elapsed = ((double) (after - before)) / CLOCKS_PER_SEC * 1000.0;
-    printf("\tTree search comleted in %0.3f ms (%ld clocks)\n", elapsed, (after - before));
+    printf("\tTree search comleted in %0.3f ms (%ld clocks). %s\n",
+        elapsed, (after - before), search_result(results[1]));
 
-    if (last_result != result) {
+    if (results[1] != results[0]) {
         fprintf(stderr, "%s\n", "ERROR: Mismatched results from list and tree!\n");
-        return NOT_FOUND;
+        //return NOT_FOUND;
     }
-    
-    last_result = result;
+
     before = clock();
-    result = find_WHT(dict->table, input);
+    results[2] = find_WHT(dict->table, input);
     after = clock();
     dict->table_counter->find_clocks += after - before;
     elapsed = ((double) (after - before)) / CLOCKS_PER_SEC * 1000.0;
-    printf("\tTree search comleted in %0.3f ms (%ld clocks)\n", elapsed, (after - before));
-    
-    if (last_result != result) {
-        fprintf(stderr, "%s\n", "ERROR: Mismatched results from tree and table!\n");
-        return NOT_FOUND;
+    printf("\tTable search comleted in %0.3f ms (%ld clocks). %s\n",
+        elapsed, (after - before), search_result(results[2]));
+
+    if (results[2] != results[1] || results[2] != results[0]) {
+        fprintf(stderr, "%s\n", "ERROR: Mismatched results from table!\n");
+        //return NOT_FOUND;
     }
 
-    if (result == -1)
+    if (results[0] == NOT_FOUND && results[1] == NOT_FOUND && results[2] == NOT_FOUND)
         return NOT_FOUND;
     else
         return FOUND;
@@ -191,7 +207,7 @@ int spell_check(Dictionary *dict, char *input)
 
 void print_summary_report(Dictionary *d)
 {
-    fprintf(stderr, "%s\n", "ERROR: Summary reports not implemented!");
+    fprintf(stderr, "\n\n%s\n\n", "ERROR: Summary reports not implemented!");
 }
 
 void delete_dictionary(Dictionary **dict)
@@ -199,9 +215,9 @@ void delete_dictionary(Dictionary **dict)
     if (*dict) {
         delete_WLL(&(*dict)->list);
         delete_WST(&(*dict)->tree);
+        delete_WHT(&(*dict)->table);
         free((*dict)->list_counter);
         free((*dict)->tree_counter);
-        delete_WHT(&(*dict)->table);
         free((*dict)->table_counter);
         free(*dict);
         *dict = NULL;
