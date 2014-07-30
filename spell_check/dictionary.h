@@ -1,11 +1,19 @@
 #ifndef DICTIONARY_H
 #define DICTIONARY_H
 
+#define RANGE_ELEMENTS 9
+
+typedef struct _FindCounter
+{
+    int find_count;
+    clock_t clock_ranges[RANGE_ELEMENTS];
+    int clock_range_counts[RANGE_ELEMENTS];
+} FindCounter;
+
 typedef struct _PCounter
 {
     clock_t load_clocks;
-    clock_t find_clocks;
-    int find_count;
+    FindCounter *find_counter;
 } PCounter;
 
 typedef struct _Dictionary

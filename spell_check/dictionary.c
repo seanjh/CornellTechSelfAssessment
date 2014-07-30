@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
@@ -67,7 +68,33 @@ void normalize_input(char *str)
 
 PCounter * create_pcounter()
 {
-    PCounter * counter = malloc(sizeof(PCounter));
+    FindCounter *find_counter = malloc(sizeof(FindCounter));
+    if (!find_counter)
+    {
+        fprintf(stderr, "%s\n", "ERROR: Out of memory (PCounter).");
+        exit(EXIT_FAILURE);
+    }
+
+    find_counter->find_count = 0;
+    /*int i;
+    int range = 1;
+    for (i= 0; i < RANGE_ELEMENTS; i++) {
+        find_counter->clock_ranges[i] = range;
+        find_counter->clock_range_counts[i] = 0;
+
+        //range++;
+        range *= 2 ;
+    }*/
+    clock_t tmp_ranges[RANGE_ELEMENTS] = {5, 10, 100, 200, 500, 1000, 2000, 5000, 10000};
+    memcpy(find_counter->clock_ranges, tmp_ranges, sizeof(find_counter->clock_ranges));
+    int tmp_counts[RANGE_ELEMENTS] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+    memcpy(find_counter->clock_range_counts, tmp_counts, sizeof(find_counter->clock_range_counts));
+    //find_counter->clock_range_counts[RANGE_ELEMENTS] = {};
+    //find_counter->clock_ranges = {1, 5, 10, 50, 100, 500, 1000, 5000, 10000};
+    //find_counter->clock_range_counts = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+
+    PCounter *counter = malloc(sizeof(PCounter));
     if (!counter)
     {
         fprintf(stderr, "%s\n", "ERROR: Out of memory (PCounter).");
@@ -75,8 +102,7 @@ PCounter * create_pcounter()
     }
 
     counter->load_clocks = 0l;
-    counter->find_clocks = 0l;
-    counter->find_count = 0;
+    counter->find_counter = find_counter;
 
     return counter;
 }
@@ -105,6 +131,24 @@ Dictionary * create_dictionary()
     return dict;
 }
 
+double clocks_to_ms(clock_t clocks)
+{
+    return ((double) clocks) / CLOCKS_PER_SEC * 1000.0;
+}
+
+void log_find_performance(PCounter *counter, clock_t clocks)
+{
+    counter->find_counter->find_count++;
+
+    int i;
+    for (i = 0; i < RANGE_ELEMENTS; i++) {
+        if (clocks <= counter->find_counter->clock_ranges[i]) {
+            counter->find_counter->clock_range_counts[i]++;
+            break;
+        }
+    }
+}
+
 Dictionary * load_dictionary(FILE *infile)
 {
     Dictionary *dict = create_dictionary();
@@ -124,16 +168,19 @@ Dictionary * load_dictionary(FILE *infile)
 
         start = clock();
         append_WLL(dict->list, line);
+        //log_find_performance(dict->list_counter, clock() - start);
         dict->list_counter->load_clocks += (clock() - start);
 
         //printf("Loading to tree %s\n", line);
 
         start = clock();
         insert_WST(dict->tree, line);
+        //log_find_performance(dict->tree_counter, clock() - start);
         dict->tree_counter->load_clocks += (clock() - start);
 
         start = clock();
         insert_WHT(dict->table, line);
+        //log_find_performance(dict->table_counter, clock() - start);
         dict->table_counter->load_clocks += clock() - start;
 
         //hold_up(0.5, false);
@@ -168,7 +215,8 @@ int spell_check(Dictionary *dict, char *input)
     before = clock();
     results[0] = find_WLL(dict->list, input);
     after = clock();
-    dict->list_counter->find_clocks += after - before;
+    log_find_performance(dict->list_counter, after - before);
+    //dict->list_counter->find_clocks += after - before;
     elapsed = ((double) (after - before)) / CLOCKS_PER_SEC * 1000.0;
     printf("\tList search comleted in %0.3f ms (%ld clocks). %s\n",
         elapsed, (after - before), search_result(results[0]));
@@ -176,7 +224,8 @@ int spell_check(Dictionary *dict, char *input)
     before = clock();
     results[1] = find_WST(dict->tree, input);
     after = clock();
-    dict->tree_counter->find_clocks += after - before;
+    log_find_performance(dict->tree_counter, after - before);
+    //dict->tree_counter->find_clocks += after - before;
     elapsed = ((double) (after - before)) / CLOCKS_PER_SEC * 1000.0;
     printf("\tTree search comleted in %0.3f ms (%ld clocks). %s\n",
         elapsed, (after - before), search_result(results[1]));
@@ -189,7 +238,8 @@ int spell_check(Dictionary *dict, char *input)
     before = clock();
     results[2] = find_WHT(dict->table, input);
     after = clock();
-    dict->table_counter->find_clocks += after - before;
+    log_find_performance(dict->table_counter, after - before);
+    //dict->table_counter->find_clocks += after - before;
     elapsed = ((double) (after - before)) / CLOCKS_PER_SEC * 1000.0;
     printf("\tTable search comleted in %0.3f ms (%ld clocks). %s\n",
         elapsed, (after - before), search_result(results[2]));
@@ -205,9 +255,141 @@ int spell_check(Dictionary *dict, char *input)
         return FOUND;
 }
 
-void print_summary_report(Dictionary *d)
+void print_load_report(Dictionary *dict)
 {
-    fprintf(stderr, "\n\n%s\n\n", "ERROR: Summary reports not implemented!");
+    printf("\n\n%28s\n", "Load Times Summary Report");
+    int i;
+    for (i = 0; i < 35; i++) { printf("-"); }
+    printf("\n");
+    clock_t list, tree, table;
+    list = dict->list_counter->load_clocks;
+    tree = dict->tree_counter->load_clocks;
+    table = dict->table_counter->load_clocks;
+
+    printf("List: %ju clocks (%0.3fms)\n", 
+            (uintmax_t) list, 
+            ((double) list) / CLOCKS_PER_SEC * 1000.0);
+    printf("Tree: %ju clocks (%0.3fms)\n", 
+            (uintmax_t) tree, 
+            ((double) tree) / CLOCKS_PER_SEC * 1000.0);
+    printf("Table: %ju clocks (%0.3fms)\n", 
+            (uintmax_t) table, 
+            ((double) table) / CLOCKS_PER_SEC * 1000.0);
+
+    printf("\n\n");
+}
+
+bool is_range_over_pct(FindCounter *fcount, int range_i, int pct)
+{
+    double result;
+    result = 100 * ((double) fcount->clock_range_counts[range_i]) / ((double) fcount->find_count);
+    //((double) fcount->clock_range_counts[range_i]) / ((double) fcount->find_count)
+    return result >= pct;
+}
+
+void print_search_row(Dictionary *dict, int pct)
+{
+    //dict->list_counter->find_counter->???
+    //dict->tree_counter->find_counter->???
+    //dict->table_counter->find_counter->???
+    int i;
+    for (i = 0; i < RANGE_ELEMENTS; i++) {
+        if (is_range_over_pct(dict->list_counter->find_counter, i, pct))
+            printf("%2s", "L");
+        else
+            printf("%2s", "");
+        if (is_range_over_pct(dict->tree_counter->find_counter, i, pct))
+            printf("%2s", "T");
+        else
+            printf("%2s", "");
+        if (is_range_over_pct(dict->table_counter->find_counter, i, pct))
+            printf("%2s", "B");
+        else
+            printf("%2s", "");
+        printf("\t");
+    }
+}
+
+void print_x_axis(clock_t ranges[])
+{
+    printf("%8s", "");
+    int i;
+    for (i = 0; i < RANGE_ELEMENTS; i++)
+    {
+        //printf("%4.1fms", clocks_to_ms(ranges[i]));
+        printf("%6s", "=====");
+        //printf("%2s", "");
+        printf("\t");
+    }
+    printf("\n");
+
+    printf("%8s", "");
+    for (i = 0; i < RANGE_ELEMENTS; i++)
+    {
+        //printf("%4.1fms", clocks_to_ms(ranges[i]));
+        printf("%6ju", (uintmax_t) ranges[i]);
+        //printf("%2s", "");
+        printf("\t");
+    }
+    printf("\n");
+}
+
+void debug_print(PCounter *counter)
+{
+    int i;
+    //printf("List (%d total)\n", counter->find_counter->find_count);
+    for (i = 0; i < RANGE_ELEMENTS; i++) {
+        printf("\t%d at %ju clocks\n",
+            counter->find_counter->clock_range_counts[i],
+            (uintmax_t) counter->find_counter->clock_ranges[i]);
+    }
+    printf("\n");
+    printf("\n");
+}
+
+void print_row_divider()
+{
+    printf("%7s", "");
+    int i;
+    for (i = 0; i < RANGE_ELEMENTS; i++)
+    {
+        printf("--------");
+    }
+    printf("\n");
+}
+
+void print_search_report(Dictionary *dict)
+{
+    printf("%30s\n", "Search Times Summary Report (clocks)");
+    int i;
+    for (i = 0; i < 35; i++) { printf("-"); }
+    printf("\n");
+
+    int pct;
+    for (pct = 100; pct > 0; pct -= 5)
+    {
+        print_row_divider();
+        printf("%4d%% | ", pct);
+        print_search_row(dict, pct);
+        printf("\n");
+    }
+
+    print_x_axis(dict->list_counter->find_counter->clock_ranges);
+    printf("\n\n");
+    
+    /*printf("List: \n");
+    debug_print(dict->list_counter);
+    printf("Tree: \n");
+    debug_print(dict->tree_counter);
+    printf("Table: \n");
+    debug_print(dict->table_counter);
+    printf("\n");*/
+}
+
+void print_summary_report(Dictionary *dict)
+{
+    print_load_report(dict);
+    print_search_report(dict);
 }
 
 void delete_dictionary(Dictionary **dict)
